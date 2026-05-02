@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 #include "IEnumerator.h"
+#include "Option.h"
 
 template<typename T>
 class MutableArraySequence;
@@ -72,6 +73,30 @@ public:
             acc = func(acc, enumerator->Current());
         }
         return acc;
+    }
+
+    Option<T> GetFirst(bool (&func)(T)) {
+        auto enumerator = this->GetEnumerator();
+        while (enumerator->MoveNext()) {
+            if (T elem = enumerator->Current(); func(elem)) return Option<T>(elem);
+        }
+        return Option<T>();
+    }
+
+    Option<T> GetLast(bool (&func)(T)) {
+        auto enumerator = this->GetEnumerator();
+        T res{};
+        bool flag = false;
+        while (enumerator->MoveNext()) {
+            T elem = enumerator->Current();
+            if (func(elem)) {
+                res = elem;
+                flag = true;
+            }
+        }
+        if (flag)
+            return Option<T>(res);
+        return Option<T>();
     }
 
     virtual ~Sequence() = default;

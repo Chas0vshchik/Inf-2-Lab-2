@@ -46,8 +46,6 @@ public:
 
     [[nodiscard]] BitSequence *CreateEmpty() const override;
 
-    [[nodiscard]] std::string toDecimalString() const;
-
     ~BitSequence() override;
 
 protected:

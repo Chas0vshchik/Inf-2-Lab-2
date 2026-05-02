@@ -58,7 +58,7 @@ public:
         data[index] = value;
     }
 
-    void Resize(size_t newSize) {
+    void Resize(const size_t newSize) {
         T *newData = new T[newSize];
         for (size_t i = 0; i < std::min(newSize, size); i++) newData[i] = data[i];
         delete[] data;

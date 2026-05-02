@@ -422,37 +422,3 @@ BitSequence *BitSequence::Instance() {
 BitSequence::~BitSequence() {
     delete bytes;
 }
-
-std::string BitSequence::toDecimalString() const { //TODO что это
-    if (bitSize == 0) return "0";
-
-    std::string result = "0";
-
-
-    for (size_t i = bitSize; i-- > 0;) {
-        int carry = 0;
-        for (size_t j = result.size(); j-- > 0;) {
-            int digit = result[j] - '0';
-            digit = digit * 2 + carry;
-            carry = digit / 10;
-            result[j] = static_cast<char>((digit % 10) + '0');
-        }
-        if (carry > 0) {
-            result.insert(result.begin(), static_cast<char>(carry + '0'));
-        }
-
-        if (getBit(i)) {
-            carry = 1;
-            for (size_t j = result.size(); j-- > 0 && carry > 0;) {
-                int digit = result[j] - '0' + carry;
-                carry = digit / 10;
-                result[j] = static_cast<char>((digit % 10) + '0');
-            }
-            if (carry > 0) {
-                result.insert(result.begin(), '1');
-            }
-        }
-    }
-
-    return result;
-}
