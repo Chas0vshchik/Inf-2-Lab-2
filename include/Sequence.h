@@ -12,13 +12,10 @@ template<typename T>
 class Sequence {
 public:
     virtual T GetFirst() const = 0;
-
     virtual T GetLast() const = 0;
-
     [[nodiscard]] virtual size_t GetLength() const = 0;
 
     virtual Sequence *GetSubsequence(size_t startIndex, size_t endIndex) const = 0;
-
     virtual IEnumerator<T> *GetEnumerator() const = 0;
 
     Sequence *Append(const T &elem) {
@@ -104,13 +101,9 @@ protected:
     virtual Sequence *Instance() = 0;
 
     virtual Sequence *AppendImpl(const T &elem) = 0;
-
     virtual Sequence *PrependImpl(const T &elem) = 0;
-
     virtual Sequence *InsertAtImpl(const T &elem, size_t index) = 0;
-
     virtual Sequence *ConcatImpl(const Sequence &other) = 0;
-
     virtual Sequence *DelImpl(size_t index) = 0;
 
     virtual Sequence *CreateEmpty() const = 0;

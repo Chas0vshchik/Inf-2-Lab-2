@@ -7,29 +7,29 @@
 #include <stdexcept>
 
 void BitSequence::ensureReductionCapacity() const {
-    const size_t currentCap = bytes->GetSize();
-    if (bitSize / 8 > currentCap) return;
+    const size_t currentCap = data->GetSize();
+    if (size / 8 > currentCap) return;
     const size_t newCap = std::max(static_cast<size_t>(1), static_cast<size_t>(currentCap) - 1);
-    bytes->Resize(newCap);
+    data->Resize(newCap);
 }
 
 void BitSequence::ensureIncreaseCapacity() const {
-    const size_t currentCap = bytes->GetSize();
-    if (bitSize / 8 < currentCap) return;
+    const size_t currentCap = data->GetSize();
+    if (size / 8 < currentCap) return;
     const size_t newCap = currentCap + 1;
-    bytes->Resize(newCap);
+    data->Resize(newCap);
 }
 
 uint8_t BitSequence::getByte(const size_t byteIdx) const {
-    return bytes->Get(byteIdx);
+    return data->Get(byteIdx);
 }
 
 void BitSequence::setByte(const size_t byteIdx, const uint8_t val) const {
-    bytes->Set(byteIdx, val);
+    data->Set(byteIdx, val);
 }
 
 bool BitSequence::getBit(const size_t bitIdx) const {
-    if (bitIdx >= bitSize)
+    if (bitIdx >= size)
         throw std::out_of_range("bit index out of range");
     const size_t byteIdx = bitIdx / 8;
     const size_t bitPos = bitIdx % 8;
@@ -37,12 +37,12 @@ bool BitSequence::getBit(const size_t bitIdx) const {
 }
 
 BitSequence *BitSequence::setBit(const size_t bitIdx, const bool value) {
-    if (bitIdx >= bitSize)
+    if (bitIdx >= size)
         throw std::out_of_range("bit index out of range");
 
     const size_t byteIdx = bitIdx / 8;
     const size_t bitPos = bitIdx % 8;
-    uint8_t byteVal = bytes->Get(byteIdx);
+    uint8_t byteVal = data->Get(byteIdx);
 
     if (value) {
         byteVal |= static_cast<uint8_t>(1u << bitPos);
@@ -50,28 +50,28 @@ BitSequence *BitSequence::setBit(const size_t bitIdx, const bool value) {
         byteVal &= static_cast<uint8_t>(~(1u << bitPos));
     }
 
-    bytes->Set(byteIdx, byteVal);
+    data->Set(byteIdx, byteVal);
     return this;
 }
 
 BitSequence::BitSequence(DynamicArray<uint8_t> *b, const size_t bits)
-    : bytes(b), bitSize(bits) {
+    : data(b), size(bits) {
 }
 
-BitSequence::BitSequence(const bool *bits, const size_t numBits) : bitSize(numBits) {
+BitSequence::BitSequence(const bool *bits, const size_t numBits) : size(numBits) {
     if (!bits || numBits <= 0)
         throw std::invalid_argument("bits is nullptr");
 
     const size_t byteCount = (numBits + 7) / 8;
-    bytes = new DynamicArray<uint8_t>(byteCount);
+    data = new DynamicArray<uint8_t>(byteCount);
 
     for (size_t i = 0; i < numBits; ++i) {
         if (bits[i]) {
             const size_t bIdx = i / 8;
             const size_t bPos = i % 8;
-            uint8_t val = bytes->Get(bIdx);
+            uint8_t val = data->Get(bIdx);
             val |= static_cast<uint8_t>(1u << bPos);
-            bytes->Set(bIdx, val);
+            data->Set(bIdx, val);
         }
     }
 }
@@ -80,42 +80,66 @@ BitSequence::BitSequence(const char *bitStr) {
     if (!bitStr)
         throw std::invalid_argument("bitStr is nullptr");
 
-    bitSize = std::strlen(bitStr);
-    for (size_t i = 0; i < bitSize; ++i) {
+    size = std::strlen(bitStr);
+    for (size_t i = 0; i < size; ++i) {
         if (bitStr[i] != '0' && bitStr[i] != '1')
             throw std::invalid_argument("invalid character");
     }
 
-    const size_t byteCount = (bitSize + 7) / 8;
-    bytes = new DynamicArray<uint8_t>(byteCount);
+    const size_t byteCount = (size + 7) / 8;
+    data = new DynamicArray<uint8_t>(byteCount);
 
-    for (size_t i = 0; i < bitSize; ++i) {
+    for (size_t i = 0; i < size; ++i) {
         if (bitStr[i] == '1') {
             const size_t bIdx = i / 8;
             const size_t bPos = i % 8;
-            uint8_t val = bytes->Get(bIdx);
+            uint8_t val = data->Get(bIdx);
             val |= static_cast<uint8_t>(1u << bPos);
-            bytes->Set(bIdx, val);
+            data->Set(bIdx, val);
         }
     }
 }
 
+BitSequence::BitSequence(const BitSequence& other) : size(other.size) {
+    const size_t byteCount = (size + 7) / 8;
+    data = new DynamicArray<uint8_t>(byteCount);
+
+    for (size_t i = 0; i < byteCount; ++i) {
+        data->Set(i, other.getByte(i));
+    }
+}
+
+BitSequence& BitSequence::operator=(const BitSequence& other) {
+    if (this != &other) {
+        delete data;
+
+        size = other.size;
+        const size_t byteCount = (size + 7) / 8;
+        data = new DynamicArray<uint8_t>(byteCount);
+
+        for (size_t i = 0; i < byteCount; ++i) {
+            data->Set(i, other.getByte(i));
+        }
+    }
+    return *this;
+}
+
 size_t BitSequence::GetLength() const {
-    return bitSize;
+    return size;
 }
 
 bool BitSequence::GetFirst() const {
-    if (bitSize == 0) throw std::out_of_range("BitSequence is empty");
+    if (size == 0) throw std::out_of_range("BitSequence is empty");
     return getBit(0);
 }
 
 bool BitSequence::GetLast() const {
-    if (bitSize == 0) throw std::out_of_range("BitSequence is empty");
-    return getBit(bitSize - 1);
+    if (size == 0) throw std::out_of_range("BitSequence is empty");
+    return getBit(size - 1);
 }
 
 BitSequence *BitSequence::GetSubsequence(const size_t startIndex, const size_t endIndex) const {
-    if (endIndex > bitSize)
+    if (endIndex > size)
         throw std::out_of_range("endIndex out of bounds");
 
     const size_t newLen = endIndex - startIndex;
@@ -138,142 +162,142 @@ IEnumerator<bool> *BitSequence::GetEnumerator() const {
 BitSequence *BitSequence::AppendImpl(const bool &elem) {
     ensureIncreaseCapacity();
 
-    const size_t byteIdx = bitSize / 8;
-    const size_t bitPos = bitSize % 8;
+    const size_t byteIdx = size / 8;
+    const size_t bitPos = size % 8;
 
-    uint8_t byteVal = bytes->Get(byteIdx);
+    uint8_t byteVal = data->Get(byteIdx);
     if (elem) {
         byteVal |= static_cast<uint8_t>(1u << bitPos);
     } else {
         byteVal &= static_cast<uint8_t>(~(1u << bitPos));
     }
-    bytes->Set(byteIdx, byteVal);
+    data->Set(byteIdx, byteVal);
 
-    ++bitSize;
+    ++size;
     return this;
 }
 
 BitSequence *BitSequence::PrependImpl(const bool &elem) {
-    if (bitSize == 0) {
+    if (size == 0) {
         return AppendImpl(elem);
     }
 
     ensureIncreaseCapacity();
 
-    for (size_t i = bitSize; i > 0; --i) {
+    for (size_t i = size; i > 0; --i) {
         const size_t srcByteIdx = (i - 1) / 8;
         const size_t srcBitPos = (i - 1) % 8;
-        const uint8_t srcByte = bytes->Get(srcByteIdx);
+        const uint8_t srcByte = data->Get(srcByteIdx);
         const bool bit = (srcByte >> srcBitPos) & 1u;
 
         const size_t dstByteIdx = i / 8;
         const size_t dstBitPos = i % 8;
-        uint8_t dstByte = bytes->Get(dstByteIdx);
+        uint8_t dstByte = data->Get(dstByteIdx);
         if (bit) {
             dstByte |= static_cast<uint8_t>(1u << dstBitPos);
         } else {
             dstByte &= static_cast<uint8_t>(~(1u << dstBitPos));
         }
-        bytes->Set(dstByteIdx, dstByte);
+        data->Set(dstByteIdx, dstByte);
     }
 
-    uint8_t firstByte = bytes->Get(0);
+    uint8_t firstByte = data->Get(0);
     if (elem) {
         firstByte |= 0x01;
     } else {
         firstByte &= ~0x01u;
     }
-    bytes->Set(0, firstByte);
+    data->Set(0, firstByte);
 
-    ++bitSize;
+    ++size;
     return this;
 }
 
 
 BitSequence *BitSequence::InsertAtImpl(const bool &elem, const size_t index) {
-    if (index > bitSize)
+    if (index > size)
         throw std::out_of_range("BitSequence: insert index out of range");
 
-    if (index == bitSize) return AppendImpl(elem);
+    if (index == size) return AppendImpl(elem);
     if (index == 0) return PrependImpl(elem);
 
     ensureIncreaseCapacity();
 
-    const size_t newBitSize = bitSize + 1;
+    const size_t newBitSize = size + 1;
 
-    for (size_t i = bitSize; i > index; --i) {
+    for (size_t i = size; i > index; --i) {
         const size_t srcByteIdx = (i - 1) / 8;
         const size_t srcBitPos = (i - 1) % 8;
-        const uint8_t srcByte = bytes->Get(srcByteIdx);
+        const uint8_t srcByte = data->Get(srcByteIdx);
         const bool bit = (srcByte >> srcBitPos) & 1u;
 
         const size_t dstByteIdx = i / 8;
         const size_t dstBitPos = i % 8;
-        uint8_t dstByte = bytes->Get(dstByteIdx);
+        uint8_t dstByte = data->Get(dstByteIdx);
         if (bit) {
             dstByte |= static_cast<uint8_t>(1u << dstBitPos);
         } else {
             dstByte &= static_cast<uint8_t>(~(1u << dstBitPos));
         }
-        bytes->Set(dstByteIdx, dstByte);
+        data->Set(dstByteIdx, dstByte);
     }
 
     const size_t bIdx = index / 8;
     const size_t bPos = index % 8;
-    uint8_t byteVal = bytes->Get(bIdx);
+    uint8_t byteVal = data->Get(bIdx);
     if (elem) {
         byteVal |= static_cast<uint8_t>(1u << bPos);
     } else {
         byteVal &= static_cast<uint8_t>(~(1u << bPos));
     }
-    bytes->Set(bIdx, byteVal);
+    data->Set(bIdx, byteVal);
 
-    bitSize = newBitSize;
+    size = newBitSize;
     return this;
 }
 
 BitSequence *BitSequence::DelImpl(const size_t index) {
-    if (index >= bitSize)
+    if (index >= size)
         throw std::out_of_range("BitSequence: delete index out of range");
 
-    if (index == bitSize - 1) {
-        --bitSize;
-        if (bitSize > 0 && bitSize % 8 != 0) {
-            const size_t lastByteIdx = bitSize / 8;
-            const auto mask = static_cast<uint8_t>((1u << (bitSize % 8)) - 1);
-            const uint8_t lastByte = bytes->Get(lastByteIdx);
-            bytes->Set(lastByteIdx, lastByte & mask);
+    if (index == size - 1) {
+        --size;
+        if (size > 0 && size % 8 != 0) {
+            const size_t lastByteIdx = size / 8;
+            const auto mask = static_cast<uint8_t>((1u << (size % 8)) - 1);
+            const uint8_t lastByte = data->Get(lastByteIdx);
+            data->Set(lastByteIdx, lastByte & mask);
         }
         ensureReductionCapacity();
         return this;
     }
 
-    for (size_t i = index; i < bitSize - 1; ++i) {
+    for (size_t i = index; i < size - 1; ++i) {
         const size_t srcByteIdx = (i + 1) / 8;
         const size_t srcBitPos = (i + 1) % 8;
-        const uint8_t srcByte = bytes->Get(srcByteIdx);
+        const uint8_t srcByte = data->Get(srcByteIdx);
         const bool bit = (srcByte >> srcBitPos) & 1u;
 
         const size_t dstByteIdx = i / 8;
         const size_t dstBitPos = i % 8;
-        uint8_t dstByte = bytes->Get(dstByteIdx);
+        uint8_t dstByte = data->Get(dstByteIdx);
         if (bit) {
             dstByte |= static_cast<uint8_t>(1u << dstBitPos);
         } else {
             dstByte &= static_cast<uint8_t>(~(1u << dstBitPos));
         }
-        bytes->Set(dstByteIdx, dstByte);
+        data->Set(dstByteIdx, dstByte);
     }
 
-    --bitSize;
+    --size;
 
-    if (bitSize > 0 && bitSize % 8 != 0) {
-        const size_t lastByteIdx = bitSize / 8;
-        const auto mask = static_cast<uint8_t>((1u << (bitSize % 8)) - 1);
-        const uint8_t lastByte = bytes->Get(lastByteIdx);
-        bytes->Set(lastByteIdx, lastByte & mask);
-    } else if (bitSize == 0) {
-        bytes->Set(0, 0);
+    if (size > 0 && size % 8 != 0) {
+        const size_t lastByteIdx = size / 8;
+        const auto mask = static_cast<uint8_t>((1u << (size % 8)) - 1);
+        const uint8_t lastByte = data->Get(lastByteIdx);
+        data->Set(lastByteIdx, lastByte & mask);
+    } else if (size == 0) {
+        data->Set(0, 0);
     }
 
     ensureReductionCapacity();
@@ -285,14 +309,14 @@ BitSequence *BitSequence::ConcatImpl(const Sequence &other) {
     const size_t otherLen = other.GetLength();
     if (otherLen == 0) return this;
 
-    const size_t oldBitSize = bitSize;
-    const size_t newBitSize = bitSize + otherLen;
+    const size_t oldBitSize = size;
+    const size_t newBitSize = size + otherLen;
 
     if ((newBitSize + 7) / 8 > (oldBitSize + 7) / 8) {
-        bytes->Resize((newBitSize + 7) / 8);
+        data->Resize((newBitSize + 7) / 8);
     }
 
-    bitSize = newBitSize;
+    size = newBitSize;
 
     auto *enumPtr = other.GetEnumerator();
     size_t targetIdx = oldBitSize;
@@ -304,112 +328,84 @@ BitSequence *BitSequence::ConcatImpl(const Sequence &other) {
     return this;
 }
 
-BitSequence *BitSequence::And(const BitSequence &other) const {
-    const size_t len = std::min(bitSize, other.bitSize);
-
-    if (len == 0) {
-        return new BitSequence(new DynamicArray<uint8_t>(0), 0);
+BitSequence& BitSequence::operator&=(const BitSequence& other) {
+    if (size != other.size) {
+        throw std::invalid_argument("Different sizes");
     }
 
-    const size_t byteCount = (len + 7) / 8;
-    auto *newBytes = new DynamicArray<uint8_t>(byteCount);
-
+    const size_t byteCount = (size + 7) / 8;
     for (size_t i = 0; i < byteCount; ++i) {
-        uint8_t resultByte = bytes->Get(i) & other.bytes->Get(i);
-        newBytes->Set(i, resultByte);
+        const uint8_t byte1 = getByte(i);
+        const uint8_t byte2 = other.getByte(i);
+        setByte(i, byte1 & byte2);
     }
 
-    if (len % 8 != 0) {
-        const size_t lastByteIdx = len / 8;
-        const auto mask = static_cast<uint8_t>((1u << (len % 8)) - 1);
-        const uint8_t lastByte = newBytes->Get(lastByteIdx);
-        newBytes->Set(lastByteIdx, lastByte & mask);
-    }
-
-    return new BitSequence(newBytes, len);
+    return *this;
 }
 
-BitSequence *BitSequence::Or(const BitSequence &other) const {
-    const size_t maxLen = std::max(bitSize, other.bitSize);
-
-    if (maxLen == 0) {
-        return new BitSequence(new DynamicArray<uint8_t>(0), 0);
+BitSequence& BitSequence::operator|=(const BitSequence& other) {
+    if (size != other.size) {
+        throw std::invalid_argument("Different sizes");
     }
 
-    const size_t byteCount = (maxLen + 7) / 8;
-    auto *newBytes = new DynamicArray<uint8_t>(byteCount);
-
-    const size_t thisByteCount = (bitSize + 7) / 8;
-    const size_t otherByteCount = (other.bitSize + 7) / 8;
-
+    const size_t byteCount = (size + 7) / 8;
     for (size_t i = 0; i < byteCount; ++i) {
-        const uint8_t a = (i < thisByteCount) ? bytes->Get(i) : 0;
-        const uint8_t b = (i < otherByteCount) ? other.bytes->Get(i) : 0;
-        newBytes->Set(i, a | b);
+        const uint8_t byte1 = getByte(i);
+        const uint8_t byte2 = other.getByte(i);
+        setByte(i, byte1 | byte2);
     }
 
-    if (maxLen % 8 != 0) {
-        const size_t lastByteIdx = maxLen / 8;
-        const auto mask = static_cast<uint8_t>((1u << (maxLen % 8)) - 1);
-        const uint8_t lastByte = newBytes->Get(lastByteIdx);
-        newBytes->Set(lastByteIdx, lastByte & mask);
-    }
-
-    return new BitSequence(newBytes, maxLen);
+    return *this;
 }
 
-BitSequence *BitSequence::Xor(const BitSequence &other) const {
-    const size_t maxLen = std::max(bitSize, other.bitSize);
-
-    if (maxLen == 0) {
-        return new BitSequence(new DynamicArray<uint8_t>(0), 0);
+BitSequence& BitSequence::operator^=(const BitSequence& other) {
+    if (size != other.size) {
+        throw std::invalid_argument("Different sizes");
     }
 
-    const size_t byteCount = (maxLen + 7) / 8;
-    auto *newBytes = new DynamicArray<uint8_t>(byteCount);
-
-    const size_t thisByteCount = (bitSize + 7) / 8;
-    const size_t otherByteCount = (other.bitSize + 7) / 8;
-
+    const size_t byteCount = (size + 7) / 8;
     for (size_t i = 0; i < byteCount; ++i) {
-        const uint8_t a = (i < thisByteCount) ? bytes->Get(i) : 0;
-        const uint8_t b = (i < otherByteCount) ? other.bytes->Get(i) : 0;
-        newBytes->Set(i, a ^ b);
+        const uint8_t byte1 = getByte(i);
+        const uint8_t byte2 = other.getByte(i);
+        setByte(i, byte1 ^ byte2);
     }
 
-    if (maxLen % 8 != 0) {
-        const size_t lastByteIdx = maxLen / 8;
-        const auto mask = static_cast<uint8_t>((1u << (maxLen % 8)) - 1);
-        const uint8_t lastByte = newBytes->Get(lastByteIdx);
-        newBytes->Set(lastByteIdx, lastByte & mask);
-    }
-
-    return new BitSequence(newBytes, maxLen);
+    return *this;
 }
 
-BitSequence *BitSequence::Not() const {
-    if (bitSize == 0) {
-        return new BitSequence(new DynamicArray<uint8_t>(0), 0);
-    }
-
-    const size_t byteCount = (bitSize + 7) / 8;
-    auto *newBytes = new DynamicArray<uint8_t>(byteCount);
-
+BitSequence& BitSequence::operator~() {
+    const size_t byteCount = (size + 7) / 8;
     for (size_t i = 0; i < byteCount; ++i) {
-        auto inverted = static_cast<uint8_t>(~bytes->Get(i));
-        newBytes->Set(i, inverted);
+        setByte(i, ~getByte(i));
     }
 
-    if (bitSize % 8 != 0) {
-        const size_t lastByteIdx = bitSize / 8;
-        const auto mask = static_cast<uint8_t>((1u << (bitSize % 8)) - 1);
-        const uint8_t lastByte = newBytes->Get(lastByteIdx);
-        newBytes->Set(lastByteIdx, lastByte & mask);
+    if (size % 8 != 0) {
+        const size_t lastByteIdx = size / 8;
+        const uint8_t mask = (1u << (size % 8)) - 1;
+        const uint8_t lastByte = getByte(lastByteIdx);
+        setByte(lastByteIdx, lastByte & mask);
     }
 
-    return new BitSequence(newBytes, bitSize);
+    return *this;
 }
 
+BitSequence operator&(const BitSequence& lhs, const BitSequence& rhs) {
+    BitSequence result = lhs;
+    result &= rhs;
+    return result;
+}
+
+BitSequence operator|(const BitSequence& lhs, const BitSequence& rhs) {
+    BitSequence result = lhs;
+    result |= rhs;
+    return result;
+}
+
+BitSequence operator^(const BitSequence& lhs, const BitSequence& rhs) {
+    BitSequence result = lhs;
+    result ^= rhs;
+    return result;
+}
 
 BitSequence *BitSequence::CreateEmpty() const {
     return new BitSequence(new DynamicArray<uint8_t>(0), 0);
@@ -420,5 +416,5 @@ BitSequence *BitSequence::Instance() {
 }
 
 BitSequence::~BitSequence() {
-    delete bytes;
+    delete data;
 }

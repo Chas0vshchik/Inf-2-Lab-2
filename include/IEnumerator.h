@@ -1,5 +1,4 @@
 #ifndef INF_2_LAB_2_IENUMERATOR_H
-
 #define INF_2_LAB_2_IENUMERATOR_H
 
 template<typename T>

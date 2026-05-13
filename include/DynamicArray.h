@@ -60,9 +60,13 @@ public:
 
     void Resize(const size_t newSize) {
         T *newData = new T[newSize];
-        for (size_t i = 0; i < std::min(newSize, size); i++) newData[i] = data[i];
+        for (size_t i = 0; i < std::min(newSize, size); i++) {
+            newData[i] = data[i];
+        }
         delete[] data;
-        for (size_t i = std::min(size, newSize); i < newSize; i++) newData[i] = T();
+        for (size_t i = std::min(size, newSize); i < newSize; i++) {
+            newData[i] = T();
+        }
         data = newData;
         size = newSize;
     }

@@ -95,16 +95,10 @@ public:
         if (index >= size) {
             throw std::out_of_range("IndexOutOfRange");
         }
-        if (size == 1) {
-            delete head;
-            head = nullptr;
-            tail = nullptr;
-            size = 0;
-            return;
-        }
         if (index == 0) {
             const Node* current = head;
             head = head->next;
+            if (size == 1) tail = nullptr;
             delete current;
             size--;
             return;

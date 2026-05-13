@@ -150,7 +150,7 @@ protected:
     void ensureReductionCapacity() {
         const size_t currentCap = data->GetSize();
         if (2 * size > currentCap) return;
-        size_t newCap = std::max(static_cast<size_t>(1), static_cast<size_t>(ceil(static_cast<double>(currentCap) / 2)));
+        size_t newCap = std::max(static_cast<size_t>(1), (currentCap+1)/2);
         data->Resize(newCap);
     }
 };

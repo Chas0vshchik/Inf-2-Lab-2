@@ -71,6 +71,9 @@ TEST(DynamicArrayTests, Resize) {
         EXPECT_EQ(arr1.Get(i), data[i]);
     }
     EXPECT_EQ(arr1.Get(3), int{});
+
+    arr1.Resize(0);
+    EXPECT_EQ(arr1.GetSize(), 0);
 }
 
 TEST(DynamicArrayTests, String) {
@@ -323,6 +326,13 @@ TEST(MutableArraySequenceTests, GetSubsequence) {
         EXPECT_EQ(GetAt(sub, i), data[i+1]);
     }
     delete sub;
+}
+
+int cast(const double x) { return static_cast<int>(x); }
+TEST(MutableArraySequenceTests, Map_double_to_int) {
+    // MutableArraySequence<double> arr;
+    // arr.Append(3.14);
+    // Sequence<int>* arrm = arr.Map(cast);
 }
 
 TEST(MutableArraySequenceTests, Map_Reduce) {
