@@ -26,6 +26,8 @@ add_executable(ui UI.cpp
         include/Sequence.h
         include/UI.h
         src/BItSequence.cpp
+        include/Lab3-Segment.h
+        include/Lab3-PiecewiseFunc.h
 )
 
 add_executable(tests tests.cpp
@@ -42,6 +44,8 @@ add_executable(tests tests.cpp
         include/Option.h
         include/Sequence.h
         src/BItSequence.cpp
+        include/Lab3-Segment.h
+        include/Lab3-PiecewiseFunc.h
 )
 
 target_link_libraries(tests
