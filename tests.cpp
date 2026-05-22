@@ -741,6 +741,7 @@ TEST(ImmutableListSequenceTests, Map_Reduce) {
 }
 
 double linear(const double x) {return x;}
+double linear_plus10(const double x) {return x + 10;}
 double linear2(const double x) {return x * 2 - 10;}
 double linear_2(const double x) {return x * -2 + 30;}
 double linear_100(const double x) {return x - 100;}
@@ -844,6 +845,8 @@ TEST(PiecewiseFuncTests, isMonotonicOnInterval) {
     segs[2] = Segment<double>(10, 20, linear2);
     segs[3] = Segment<double>(10, 20, linear_2);
     segs[4] = Segment<double>(10, 20, x_2, true, false);
+    segs[5] = Segment<double>(10, 20, myCeil, false, true);
+    segs[6] = Segment<double>(10, 20, linear_plus10);
     PiecewiseFunc<double> pwf1;
 
     pwf1.RedefineOnInterval(segs[0]);
@@ -881,4 +884,21 @@ TEST(PiecewiseFuncTests, isMonotonicOnInterval) {
         pwf1.isMonotonicOnInterval(0, 18),
         std::invalid_argument
     );
+
+    pwf1.DelSegment(1);
+    EXPECT_EQ(pwf1.GetSize(), 1);
+
+    pwf1.RedefineOnInterval(segs[6]);
+    EXPECT_EQ(pwf1.GetSize(), 2);
+    EXPECT_FALSE(pwf1.isContinuousOnInterval(0, 20));
+    EXPECT_TRUE(pwf1.isMonotonicOnInterval(0, 20));
+
+    pwf1.DelSegment(0);
+    pwf1.DelSegment(0);
+    EXPECT_EQ(pwf1.GetSize(), 0);
+
+    pwf1.RedefineOnInterval(segs[5]);
+    EXPECT_EQ(pwf1.GetSize(), 1);
+    EXPECT_FALSE(pwf1.isContinuousOnInterval(10, 20));
+    EXPECT_TRUE(pwf1.isMonotonicOnInterval(10, 20));
 }

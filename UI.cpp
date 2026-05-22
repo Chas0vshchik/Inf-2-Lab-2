@@ -1,5 +1,5 @@
-#include "include/UI.h"
 #include "include/IEnumerator.h"
+#include "include/Sequence.h"
 #include "include/Option.h"
 #include <iostream>
 #include <string>
@@ -12,6 +12,7 @@
 #include "include/MutableListSequence.h"
 
 using namespace std;
+using DataType = int;
 
 void printSequence(const Sequence<DataType> *seq) {
     if (!seq) {

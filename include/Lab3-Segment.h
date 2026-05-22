@@ -13,6 +13,9 @@ public:
 
     Segment() : start(0), end(0) {}
 
+    Segment(const T s, const T e)
+        : start(s), end(e) {}
+
     Segment(const T s, const T e, std::function<T(T)> f)
         : start(s), end(e), func(f) {}
 

@@ -58,10 +58,6 @@ public:
         for (size_t i = 0; i < segments->GetLength(); ++i) {
             Segment seg = segments->Get(i);
             if (x >= seg.start && x <= seg.end) {
-                if (i != 0 && x == seg.start ||
-                    i != segments->GetLength() - 1 && x == seg.end) {
-                    throw std::out_of_range("multiple values at point x");
-                }
                 return seg.evaluateInSegment(x);
             }
         }
@@ -76,9 +72,12 @@ public:
         }
 
         if (current_index == segments->GetLength() ||
-            end <= segments->Get(current_index).start ||
+            start < segments->Get(current_index).start ||
             segments->Get(current_index).is_continuous == false &&
             segments->Get(current_index).start == start) {
+            if (end < segments->Get(current_index).end) {
+                throw std::invalid_argument("end_x is in the middle of discontinuous segment");
+            }
             return false;
         }
         if (segments->Get(current_index).is_continuous == false &&
@@ -109,46 +108,79 @@ public:
     }
 
     bool isMonotonicOnInterval(T start, T end) const {
-        if (!isContinuousOnInterval(start, end)) return false;
-
         size_t current_index = 0;
         while (current_index < segments->GetLength()) {
             if (segments->Get(current_index).end > start) break;
             ++current_index;
         }
 
-        if (segments->Get(current_index).is_monotonic == false &&
+        if (current_index == segments->GetLength() ||
+            start < segments->Get(current_index).start ||
+            segments->Get(current_index).is_monotonic == false &&
             segments->Get(current_index).start == start) {
+            if (end < segments->Get(current_index).end) {
+                throw std::invalid_argument("end_x is in the middle of non-monotonic segment");
+            }
             return false;
         }
         if (segments->Get(current_index).is_monotonic == false &&
             segments->Get(current_index).start != start) {
-            throw std::invalid_argument("start_x is in the middle of non-monotonic segment");
+            throw std::invalid_argument("start_x is in the middle of the non-monotonic segment");
         }
 
         int direction = 0;
+        if (segments->Get(current_index).evaluateInSegment(segments->Get(current_index).start) <
+                 segments->Get(current_index).evaluateInSegment(segments->Get(current_index).end)) {
+            direction = 1;
+        }
+        if (segments->Get(current_index).evaluateInSegment(segments->Get(current_index).start) >
+                 segments->Get(current_index).evaluateInSegment(segments->Get(current_index).end)) {
+            direction = -1;
+        }
+        ++current_index;
         while (current_index < segments->GetLength()) {
-            if (segments->Get(current_index).start >= end) return true;
-            if (segments->Get(current_index).is_monotonic) {
-                if (segments->Get(current_index).evaluateInSegment(segments->Get(current_index).start) <
-                segments->Get(current_index).evaluateInSegment(segments->Get(current_index).end)) {
+            if (segments->Get(current_index - 1).end >= end) return true;
+            if (std::abs(segments->Get(current_index - 1).end -
+                segments->Get(current_index).start) < 1e-9) {
+                if (segments->Get(current_index - 1).evaluateInSegment(segments->Get(current_index - 1).end) <
+                    segments->Get(current_index).evaluateInSegment(segments->Get(current_index).start)) {
                     if (direction == -1) return false;
                     direction = 1;
                 }
-                if (segments->Get(current_index).evaluateInSegment(segments->Get(current_index).start) >
-                    segments->Get(current_index).evaluateInSegment(segments->Get(current_index).end)) {
+                if (segments->Get(current_index - 1).evaluateInSegment(segments->Get(current_index - 1).end) >
+                    segments->Get(current_index).evaluateInSegment(segments->Get(current_index).start)) {
                     if (direction == 1) return false;
                     direction = -1;
                 }
-                ++current_index;
-            } else {
-                if (segments->Get(current_index).end <= end) {
-                    return false;
+                if (segments->Get(current_index).is_monotonic) {
+                    if (segments->Get(current_index).evaluateInSegment(segments->Get(current_index).start) <
+                        segments->Get(current_index).evaluateInSegment(segments->Get(current_index).end)) {
+                        if (direction == -1) return false;
+                        direction = 1;
+                    }
+                    if (segments->Get(current_index).evaluateInSegment(segments->Get(current_index).start) >
+                        segments->Get(current_index).evaluateInSegment(segments->Get(current_index).end)) {
+                        if (direction == 1) return false;
+                        direction = -1;
+                    }
+                    ++current_index;
+                } else {
+                    if (segments->Get(current_index).end <= end) {
+                        return false;
+                    }
+                    throw std::invalid_argument("end_x is in the middle of non-monotonic segment");
                 }
-                throw std::invalid_argument("end_x is in the middle of non-monotonic segment");
+            } else {
+                return false;
             }
         }
-        return true;
+        // if (segments->GetLength() == 1 &&
+        //     segments->Get(0).is_monotonic == false &&
+        //     segments->Get(0).end > end) {
+        //     throw std::invalid_argument("end_x is in the middle of non-monotonic segment");
+        // }
+        if (segments->GetLast().end >= end) return true;
+        return false;
     }
 
     IEnumerator<T>* GetEnumerator() const {
@@ -204,14 +236,18 @@ public:
         if (is_last_sliced) {
             segments->InsertAt(Segment<T>(new_interval.end,
                                             segments->Get(last_del_index).end,
-                                            segments->Get(last_del_index).func),
+                                            segments->Get(last_del_index).func,
+                                            segments->Get(last_del_index).is_continuous,
+                                            segments->Get(last_del_index).is_monotonic),
                                             last_del_index + 1);
         }
         segments->InsertAt(new_interval, last_del_index + 1);
         if (is_first_sliced) {
             segments->InsertAt(Segment<T>(segments->Get(first_del_index).start,
                                             new_interval.start,
-                                            segments->Get(first_del_index).func),
+                                            segments->Get(first_del_index).func,
+                                            segments->Get(first_del_index).is_continuous,
+                                            segments->Get(first_del_index).is_monotonic),
                                             last_del_index + 1);
         }
         for (; first_del_index <= last_del_index; --last_del_index) {
